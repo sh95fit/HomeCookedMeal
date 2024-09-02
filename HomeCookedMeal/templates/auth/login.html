@@ -1,0 +1,9 @@
+{% load static %} {% load socialaccount %}
+
+<h1>login page</h1>
+
+<a
+  href="{% provider_login_url 'google' method='oauth2' %}"
+  class="social--login"
+  >구글 로그인</a
+>

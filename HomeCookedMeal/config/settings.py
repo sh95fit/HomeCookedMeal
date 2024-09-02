@@ -38,13 +38,27 @@ ALLOWED_HOSTS = ["*"]
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
+    'django.contrib.sites',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
+    'rest_framework',
     # 'apps.hcmApp.apps.HcmappConfig',
     'apps.hcmApp',
+    'apps.user',
+
+    # allauth
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+
+    # provider
+    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.kakao',
+    'allauth.socialaccount.providers.naver',
+
 ]
 
 MIDDLEWARE = [
@@ -55,7 +69,10 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware'
+    'corsheaders.middleware.CorsMiddleware',
+
+    # allauth 미들웨어 추가
+    "allauth.account.middleware.AccountMiddleware",
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -71,6 +88,9 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+
+                # allauth 사용 시 설정 필요
+                'django.template.context_processors.request',
             ],
         },
     },
@@ -85,13 +105,14 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': os.getenv('DB_NAME'),      
-        'USER': os.getenv('DB_USER'),     
-        'PASSWORD': os.getenv('DB_PASSWORD'), 
-        'HOST': os.getenv('DB_HOST', 'localhost'),  
-        'PORT': os.getenv('DB_PORT', '3306'),    
+        'NAME': os.getenv('DB_NAME'),
+        'USER': os.getenv('DB_USER'),
+        'PASSWORD': os.getenv('DB_PASSWORD'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '3306'),
         'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",  # MySQL 데이터 무결성 유지를 위한 엄격한 데이터 검사 수행 (즉, 잘못된 데이터를 삽입하려고 할 때 허용하지 않고 오류를 반환)
+            # MySQL 데이터 무결성 유지를 위한 엄격한 데이터 검사 수행 (즉, 잘못된 데이터를 삽입하려고 할 때 허용하지 않고 오류를 반환)
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
         },
     }
 }
@@ -143,12 +164,11 @@ STATICFILES_DIRS = [
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-
 # CORS 추가 설정
 # CORS ORIGIN을 모두 허용
 
-CORS_ORIGIN_ALLOW_ALL=True
-CORS_ALLOW_CREDENTIALS=True
+CORS_ORIGIN_ALLOW_ALL = True
+CORS_ALLOW_CREDENTIALS = True
 
 CORS_ALLOW_METHODS = (
     'DELETE',
@@ -170,3 +190,65 @@ CORS_ALLOW_HEADERS = (
     'x-csrftoken',
     'x-requested-with',
 )
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
+    'DEFAULT_FILTER_BACKENDS': [
+        'rest_framework.filters.SearchFilter',
+        'rest_framework.filters.OrderingFilter',
+    ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/day',
+        'user': '1000/day',
+    }
+}
+
+
+AUTHENTICATION_BACKENDS = (
+    # django admin에서 username으로 로그인할 때 필요
+    'django.contrib.auth.backends.ModelBackend',
+    # allauth의 주요 인증 방식
+    'allauth.account.auth_backends.AuthenticationBackend'
+)
+
+
+SITE_ID = 1
+# ACCOUNT_EMAIL_REQUIRED = True
+# ACCOUNT_EMAIL_VERIFICATION = 'none'
+LOGIN_REDIRECT_URL = '/'  # 로그인 후 리다이렉트 될 경로
+
+
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'APP': {
+            'client_id': os.getenv('GOOGLE_CLIENT_ID'),
+            'secret': os.getenv('GOOGLE_SECRET'),
+            'key': ''
+        },
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+        'OAUTH_PKCE_ENABLED': True,
+    }
+}
